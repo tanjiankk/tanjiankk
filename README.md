@@ -146,3 +146,23 @@ if index == 3:
 v1 = [xnew1,ynew1,lnew1,wnew1]
 v2 = [xnew2,ynew2,lnew2,wnew2]
 v3 = [xnew3,ynew3,lnew3,wnew3]
+
+fig = plt.figure(figsize=(22.5, 10.5)) #创建图
+ax = fig.add_subplot(111)
+
+rect = plt.Rectangle((ret1[0]-ret1[2]/2, ret1[1]-ret1[3]/2), ret1[2], ret1[3], fill=False, linewidth=3, edgecolor='red')
+ax.add_patch(rect)
+rect = plt.Rectangle((ret2[0]-ret2[2]/2, ret2[1]-ret2[3]/2), ret2[2], ret2[3], fill=False, linewidth=3, edgecolor='red')
+ax.add_patch(rect)
+
+rect = plt.Rectangle((v1[0]-v1[2]/2, v1[1]-v1[3]/2), v1[2], v1[3], fill=False, linewidth=3, edgecolor='b')
+ax.add_patch(rect)
+rect = plt.Rectangle((v2[0]-v2[2]/2, v2[1]-v2[3]/2), v2[2], v2[3], fill=False, linewidth=3, edgecolor='k')
+ax.add_patch(rect)
+rect = plt.Rectangle((v3[0]-v3[2]/2, v3[1]-v3[3]/2), v3[2], v3[3], fill=False, linewidth=3, edgecolor='y')
+ax.add_patch(rect)
+
+plt.xlim(0, 20)
+plt.ylim(0, 20)
+plt.legend
+plt.show()
