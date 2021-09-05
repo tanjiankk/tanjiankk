@@ -663,3 +663,44 @@ def Elastic_energy(H, K, H_oj, K_oj, xy_array):
     elastic_j = np.array(D_ij_list) + np.array(D_iF_list)
 #     return D_ij_list, D_iF_list, fun_index_array, fun_f_list,elastic_i, elastic_j
     return elastic_i
+
+import heapq
+class Solution:
+    def getSkyline(self, buildings):
+        # 保存所有的点
+        points = []
+        for build in buildings:
+            points.append((build[0], -build[2]))
+            points.append((build[1],  build[2]))
+        points.sort(key=lambda x: (x[0], x[1]))
+
+        # 用来保存当前扫描线所经过的建筑的高度，用堆来表示
+        heights = []
+        res = []
+        # 因为在堆里面删除元素需要更多的时间开销，所以先把需要删除的元素保存起来
+        should_del = {} 
+
+        # 保存当前的高度
+        cur_height = 0
+
+        for point in points:
+            if point[1] < 0: heapq.heappush(heights, point[1])
+            elif should_del.get(point[1]): 
+                should_del[point[1]] += 1 # 保存需要删除的次数，删除的时候，删除一次
+            else:
+                should_del[point[1]] = 1
+
+            # 如果当前堆顶元素是应该删除的元素就先删除掉
+            while heights and -heights[0] in should_del:
+                temp = -heights[0]
+                heapq.heappop(heights)
+                should_del[temp] -= 1
+                if should_del[temp] == 0:
+                    should_del.pop(temp)
+            
+            maxH = -heights[0] if heights else 0
+            if maxH != cur_height:
+                cur_height = maxH
+                res.append([point[0], cur_height])
+
+        return res
