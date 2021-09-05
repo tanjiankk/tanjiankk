@@ -589,4 +589,77 @@ for index in range(13):
 plt.xlim(0, 225)
 plt.ylim(0, 105)
 plt.legend
-    
+
+#定义弹性势能计算公式
+def Elastic_energy(H, K, H_oj, K_oj, xy_array):
+    device_area = Embedding_device(xy_array)
+    D_ij_list = []
+    D_iF_list = []
+    fun_index_array = np.ones((len(xy_array), len(xy_array)))*4
+    for i in range(len(xy_array)):
+        D_ij_step = []
+        for j in range(len(xy_array)):
+            if i != j:
+                if device_area[i][j] > 0:
+                    top_move = abs((xy_array[i][3]+xy_array[j][3])/2-(xy_array[i][1]-xy_array[j][1]))+3.5
+                    right_move = abs((xy_array[i][2]+xy_array[j][2])/2-(xy_array[i][0]-xy_array[j][0]))+3.5
+                    bottom_move = abs((xy_array[i][3]+xy_array[j][3])/2-(xy_array[j][1]-xy_array[i][1]))+3.5
+                    left_move = abs((xy_array[i][2]+xy_array[j][2])/2-(xy_array[j][0]-xy_array[i][0]))+3.5
+                    values = np.array([top_move, right_move, bottom_move, left_move])
+                    D_ij = min(top_move, right_move, bottom_move, left_move)
+                    fun_index = np.where(values == D_ij)[0][0]
+                    fun_index_array[i][j] = fun_index
+                else:
+                    D_ij = 0
+            else:
+                D_ij = 0
+            D_ij_step.append(D_ij)
+        D_ij_list.append(float(np.sum(np.array(D_ij_step))))
+        
+    enbedding_area = Embedded_around(H, K, H_oj, K_oj, xy_array)
+    x_f = H/2
+    y_f = K/2
+    fun_f_list = []
+    for device_index in range(len(enbedding_area)):
+        #这里不知道为什么，会产生一些很小很小的面积，导致报错。
+        try:
+            if (enbedding_area[device_index] < 0.5) and (enbedding_area[device_index] > 0):
+                D_iF = 0
+                fun_index_f = 4
+                enbedding_area[device_index] == 0
+            elif enbedding_area[device_index] >= 0.5:
+                rect = xy_array[device_index]
+                condition1 = rect[0]+rect[2]/2>=H-H_oj     #右边
+                condition2 = rect[0]-rect[2]/2<=H_oj       #左边
+                condition3 = rect[1]+rect[3]/2>=K-K_oj     #上边
+                condition4 = rect[1]-rect[3]/2<=K_oj       #下边
+                condition = np.array([condition1, condition2, condition3, condition4])
+                con_ture = np.array([rect[0]+rect[2]/2<H_oj, rect[0]-rect[2]/2>H-H_oj, rect[1]+rect[3]/2<K_oj, rect[1]-rect[3]/2>K-K_oj]).any()
+                if con_ture:
+                    D_iF = 10000
+                    fun_index_f = 2
+                else:
+                    if len(np.where(condition == True)[0]) == 1:
+                        if condition[0] or condition[1]:
+                            D_iF = np.sqrt((abs(xy_array[device_index][0]-x_f)+xy_array[device_index][2]/2-H/2+H_oj)**2+xy_array[device_index][3]**2)
+                            fun_index_f = 0
+                        elif condition[2] or condition[3]:
+                            D_iF = np.sqrt((abs(xy_array[device_index][1]-y_f)+xy_array[device_index][3]/2-K/2+K_oj)**2+xy_array[device_index][2]**2)
+                            fun_index_f = 1
+                    elif len(np.where(condition == True)[0]) == 2:
+                        D_iF = np.sqrt((abs(xy_array[device_index][1]-y_f)+xy_array[device_index][3]/2-K/2+K_oj)**2+\
+                                    (abs(xy_array[device_index][0]-x_f)+xy_array[device_index][2]/2-H/2+H_oj)**2)
+                        fun_index_f = 2
+            else:
+                D_iF = 0
+                fun_index_f = 4
+            D_iF_list.append(D_iF)
+            fun_f_list.append(fun_index_f)
+        except:
+            print((rect),enbedding_area[device_index])
+            print(len(np.where(condition == True)[0]))
+            print(fun_index_f)
+    elastic_i = np.sum(np.array(D_ij_list))+np.sum(np.array(D_iF_list))
+    elastic_j = np.array(D_ij_list) + np.array(D_iF_list)
+#     return D_ij_list, D_iF_list, fun_index_array, fun_f_list,elastic_i, elastic_j
+    return elastic_i
