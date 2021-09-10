@@ -704,3 +704,186 @@ class Solution:
                 res.append([point[0], cur_height])
 
         return res
+
+#宽高比变化代码
+import heapq
+import numpy as np
+import random
+import matplotlib.pyplot as plt
+import pandas as pd
+import matplotlib.patches as patches
+import math
+from sympy import *
+from random import shuffle
+np.seterr(divide='ignore',invalid='ignore')
+
+class Solution:
+    def getSkyline(self, buildings):
+        # 保存所有的点
+        points = []
+        for build in buildings:
+            points.append((build[0], -build[2]))
+            points.append((build[1],  build[2]))
+        points.sort(key=lambda x: (x[0], x[1]))
+
+        # 用来保存当前扫描线所经过的建筑的高度，用堆来表示
+        heights = []
+        res = []
+        # 因为在堆里面删除元素需要更多的时间开销，所以先把需要删除的元素保存起来
+        should_del = {} 
+
+        # 保存当前的高度
+        cur_height = 0
+
+        for point in points:
+            if point[1] < 0: heapq.heappush(heights, point[1])
+            elif should_del.get(point[1]): 
+                should_del[point[1]] += 1 # 保存需要删除的次数，删除的时候，删除一次
+            else:
+                should_del[point[1]] = 1
+
+            # 如果当前堆顶元素是应该删除的元素就先删除掉
+            while heights and -heights[0] in should_del:
+                temp = -heights[0]
+                heapq.heappop(heights)
+                should_del[temp] -= 1
+                if should_del[temp] == 0:
+                    should_del.pop(temp)
+            
+            maxH = -heights[0] if heights else 0
+            if maxH != cur_height:
+                cur_height = maxH
+                res.append([point[0], cur_height])
+
+        return res
+
+p_xy = pd.read_excel('设备位置.xlsx')
+p_xy = pd.DataFrame(p_xy.values.T)
+p_xy.columns = ['x','y','l','w']
+prime = pd.read_excel('搬运成本.xlsx')
+frequency = pd.read_excel('搬运数量.xlsx')
+frequency = frequency.fillna(0)
+
+p_xy['area'] = p_xy['l']*p_xy['w']
+p_xy['mode'] = np.random.randint(0,2,13)
+p_xy['number'] = list(range(13))
+devices_lw = p_xy.sort_values('area',ascending=False)
+devices_lw.reset_index(drop=True,inplace=True)
+
+devices = (devices_lw.values).copy()
+devices[:,2:4] = devices[:,2:4]+1.5
+devices[:,4:5] = devices[:,2:3]*devices[:,3:4]
+np.random.shuffle(devices)
+
+skyline = np.array([[7.5, 0],[225-7.5,1000]])        #水平线
+
+device_all = []
+rect_building = []
+
+for index in range(len(devices)):
+    print(index)
+    
+    if devices[index][5] == 1:
+        long = devices[index][2].copy()
+        devices[index][2] == devices[index][3].copy()
+        devices[index][3] == long
+        
+    skyline_unique = np.unique(skyline[:,1:2]).tolist()
+    Lowest_horizontal_index = np.where(skyline[:,1:] == skyline_unique[0])[0].tolist()
+    print(Lowest_horizontal_index)
+    horizontal_width = [abs(skyline[i+1][0]- skyline[i][0]) for i in Lowest_horizontal_index]
+    print(horizontal_width)
+    Lowest_horizontal_width = max(horizontal_width)
+    Lowest_horizontal_index = Lowest_horizontal_index[horizontal_width.index(max(horizontal_width))]
+    Lowest_horizontal = skyline[Lowest_horizontal_index]
+    print(Lowest_horizontal_index) 
+    
+    print('==================================')
+    print(Lowest_horizontal_width)
+    print('...................................')
+    n = 1
+    while(Lowest_horizontal_width<devices[index][2]):
+        #如果最低水平线宽度不够，先不更新最低水平线，而是改变矩形宽高比
+        height_new = devices[index][2]*devices[index][3]/Lowest_horizontal_width
+        lw_proportion = height_new/Lowest_horizontal_width
+        small_lw = min(height_new, Lowest_horizontal_width)
+        if lw_proportion>=0.2 and lw_proportion<=5 and small_lw>=10:
+            devices[index][2] = Lowest_horizontal_width
+            devices[index][3] = height_new
+        else:
+            Lowest_horizontal_index = np.where(skyline[:,1:] == skyline_unique[n])[0].tolist()
+            horizontal_width = [abs(skyline[i+1][0]- skyline[i][0]) for i in Lowest_horizontal_index]
+            Lowest_horizontal_width = max(horizontal_width)
+            Lowest_horizontal_index = Lowest_horizontal_index[horizontal_width.index(max(horizontal_width))]
+            Lowest_horizontal = skyline[Lowest_horizontal_index]
+
+        print(Lowest_horizontal_width)
+        n = n+1
+    print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')    
+    device_new = list(Lowest_horizontal)
+#     if device_new[1]>7.5:
+#         device_new[1] = device_new[1]+3.5
+    if device_new[1]<7.5:
+        device_new[1] = device_new[1]+5
+#     if device_new[1]==7.5:
+#         device_new[0] = device_new[0]+3.5 
+    print(device_new)
+    device_all.append(device_new)
+    
+    rect_step = [device_new[0], device_new[0]+devices[index][2], device_new[1]+devices[index][3]]
+    rect_building.append(rect_step)
+    skyline = Solution().getSkyline(rect_building)
+    skyline.append([225-7.5,1000])
+    skyline = np.array(skyline)
+    print('**************************************')
+    print(skyline)
+    
+#不设置间隔
+#绘图
+def random_color():
+    color_list=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F']
+    color = ''
+    for i in range(6):
+        color_number = color_list[random.randint(0,15)]
+        color += color_number
+    color = '#' +color
+    return color
+xy_num = 1
+fig = plt.figure(figsize=(22.5, 10.5)) #创建图
+ax = fig.add_subplot(111)
+for index in range(13):
+#     plt.scatter(e[index][0],e[index][1],color='black')
+    x = device_all[index][0]
+    y = device_all[index][1]
+    color = random_color()
+    rect = plt.Rectangle((x, y),devices[index][2],devices[index][3], fill=False, linewidth=3, edgecolor=color)
+    ax.add_patch(rect)
+    plt.text(device_all[index][0],device_all[index][1],int(devices[index][6]+1), fontsize=20)
+plt.xlim(0, 225)
+plt.ylim(0, 105)
+plt.legend
+
+#设置间隔
+#绘图
+def random_color():
+    color_list=['0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F']
+    color = ''
+    for i in range(6):
+        color_number = color_list[random.randint(0,15)]
+        color += color_number
+    color = '#' +color
+    return color
+xy_num = 1
+fig = plt.figure(figsize=(22.5, 10.5)) #创建图
+ax = fig.add_subplot(111)
+for index in range(13):
+#     plt.scatter(e[index][0],e[index][1],color='black')
+    x = device_all[index][0]
+    y = device_all[index][1]
+    color = random_color()
+    rect = plt.Rectangle((x, y),devices[index][2]-1.5,devices[index][3]-1.5, fill=False, linewidth=3, edgecolor=color)
+    ax.add_patch(rect)
+    plt.text(device_all[index][0],device_all[index][1],int(devices[index][6]+1), fontsize=20)
+plt.xlim(0, 225)
+plt.ylim(0, 105)
+plt.legend
